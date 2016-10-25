@@ -11,6 +11,7 @@ import org.encog.neural.networks.training.propagation.back.Backpropagation;
 import org.encog.util.csv.ReadCSV;
 
 public class NeuralNetwork {
+	private static int SERIAL_NUMBER = 0;
 	private boolean isTrained = false;
 	BasicNetwork network;
 	private Backpropagation trainer;
@@ -19,22 +20,36 @@ public class NeuralNetwork {
 		super();
 		this.network = network;
 		this.trainer = new Backpropagation(network, trainingSet, learningRate, momentum);
+		SERIAL_NUMBER++;
 	}
 
 	public void trainNetwork(int iterationsCount, double targetError) {
-		// TODO: Implement array for training errors
-		if (trainer != null) {
-			trainer.setBatchSize(1);
-			while (true) {
-				isTrained = true;
-				trainer.iteration();
-				if (trainer.getIteration() % 100 == 0)
-					System.out.println("Iteration: " + trainer.getIteration() + " Error -> " + trainer.getError());
-				if (trainer.getError() < targetError || --iterationsCount <= 0)
-					break;
+		try {
+			FileWriter writer = new FileWriter("/tmp/training_error_" + SERIAL_NUMBER + ".csv");
+			StringBuilder sb = new StringBuilder();
+			sb.append("iteration,error\n");
+			int iteration = 0;
+			if (trainer != null) {
+				trainer.setBatchSize(1);
+				while (true) {
+					isTrained = true;
+					trainer.iteration();
+					sb.append(iteration++ + "," + trainer.getError() + "\n");
+					if (trainer.getIteration() % 100 == 0)
+						System.out.println("Iteration: " + trainer.getIteration() + " Error -> " + trainer.getError());
+					if (trainer.getError() < targetError || --iterationsCount <= 0)
+						break;
+				}
+				System.out.println("Finished training with error: " + trainer.getError());
+				trainer.finishTraining();
+
+				writer.append(sb.toString());
+				writer.flush();
+				writer.close();
 			}
-			System.out.println("Finished training with error: " + trainer.getError());
-			trainer.finishTraining();
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+			isTrained = false;
 		}
 	}
 
